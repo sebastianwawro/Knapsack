@@ -47,7 +47,7 @@ import static java.util.Objects.requireNonNull;
  * @since 3.4
  */
 public final class Knapsack implements Problem<ISeq<Knapsack.Item>, BitGene, Double> {
-
+	private static int i=0;
 	/**
 	 * This class represents a knapsack item with the specific <i>size</i> and
 	 * <i>value</i>.
@@ -129,6 +129,13 @@ public final class Knapsack implements Problem<ISeq<Knapsack.Item>, BitGene, Dou
 		}
 
 		/**
+		 * NEXT FROM TABLE
+		 */
+		public static Item getFromTable(int index, final double[] itemSizes, final double[] itemValues) {
+			return new Item(itemSizes[index], itemValues[index]);
+		}
+
+		/**
 		 * Return a {@link Collector}, which sums the size and value of knapsack
 		 * items.
 		 *
@@ -183,28 +190,40 @@ public final class Knapsack implements Problem<ISeq<Knapsack.Item>, BitGene, Dou
 	 *        {@code Knapsack} problems, respectively.
 	 * @return a {@code Knapsack} problem object (for testing purpose).
 	 */
-	public static Knapsack of(final int itemCount, final Random random) {
-		requireNonNull(random);
-
+	public static Knapsack of(final int itemCount, final double[] itemSizes, final double[] itemValues, double backpackSize) {
+		//requireNonNull(random);
+		i=0;
 		return new Knapsack(
-			Stream.generate(() -> Item.random(random))
+			Stream.generate(() -> Item.getFromTable(i++, itemSizes, itemValues))
 				.limit(itemCount)
 				.collect(ISeq.toISeq()),
-			itemCount*100.0/3.0
+			backpackSize
 		);
 	}
 
-	public static void main(final String[] args) {
-		final Knapsack knapsack = Knapsack.of(250000, new Random(123));
+	public static String solveKnapsack(final int itemCount,       //tables size
+							final double[] itemSizes,  //table
+							final double[] itemValues, //table
+							final double backpackSize,
+							final int populationSize, //500
+							final int tournamentSelectorSampleSize, //5
+							final double mutatorProbability, //0.115
+							final double crossoverProbability, //0.16
+							final int generationsCount, //7
+							final int generationsLimit,  //100
+							boolean printResults
+	) {
+
+		final Knapsack knapsack = Knapsack.of(itemCount, itemSizes, itemValues, backpackSize);
 
 		// Configure and build the evolution engine.
 		final Engine<BitGene, Double> engine = Engine.builder(knapsack)
-			.populationSize(500)
-			.survivorsSelector(new TournamentSelector<>(5))
+			.populationSize(populationSize)
+			.survivorsSelector(new TournamentSelector<>(tournamentSelectorSampleSize))
 			.offspringSelector(new RouletteWheelSelector<>())
 			.alterers(
-				new Mutator<>(0.015),
-				new SinglePointCrossover<>(0.66))
+				new Mutator<>(mutatorProbability),
+				new SinglePointCrossover<>(crossoverProbability))
 			.build();
 
 		// Create evolution statistics consumer.
@@ -214,10 +233,10 @@ public final class Knapsack implements Problem<ISeq<Knapsack.Item>, BitGene, Dou
 		final Phenotype<BitGene, Double> best = engine.stream()
 			// Truncate the evolution stream after 7 "steady"
 			// generations.
-			.limit(bySteadyFitness(7))
+			.limit(bySteadyFitness(generationsCount))
 			// The evolution will stop after maximal 100
 			// generations.
-			.limit(100)
+			.limit(generationsLimit)
 			// Update the evaluation statistics after
 			// each generation
 			.peek(statistics)
@@ -225,8 +244,11 @@ public final class Knapsack implements Problem<ISeq<Knapsack.Item>, BitGene, Dou
 			// its best phenotype.
 			.collect(toBestPhenotype());
 
-		System.out.println(statistics);
-		System.out.println(best);
+		if (printResults) {
+			System.out.println(statistics);
+			System.out.println(best);
+		}
+		return best.toString();
 	}
 
 }
