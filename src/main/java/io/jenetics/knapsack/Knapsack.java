@@ -171,7 +171,8 @@ public final class Knapsack implements Problem<ISeq<Knapsack.Item>, BitGene, Dou
 	public Function<ISeq<Item>, Double> fitness() {
 		return items -> {
 			final Item sum = items.stream().collect(Item.toSum());
-			return sum._size <= _knapsackSize ? sum._value : 0;
+			//return sum._size <= _knapsackSize ? sum._value : 0;
+			return (sum._size<=_knapsackSize)?(sum._value*(sum._size/_knapsackSize)):(-sum._size);
 	};
 	}
 
@@ -220,7 +221,7 @@ public final class Knapsack implements Problem<ISeq<Knapsack.Item>, BitGene, Dou
 		final Engine<BitGene, Double> engine = Engine.builder(knapsack)
 			.populationSize(populationSize)
 			.survivorsSelector(new TournamentSelector<>(tournamentSelectorSampleSize))
-			.offspringSelector(new RouletteWheelSelector<>())
+			//.offspringSelector(new RouletteWheelSelector<>())
 			.alterers(
 				new Mutator<>(mutatorProbability),
 				new SinglePointCrossover<>(crossoverProbability))
@@ -233,7 +234,7 @@ public final class Knapsack implements Problem<ISeq<Knapsack.Item>, BitGene, Dou
 		final Phenotype<BitGene, Double> best = engine.stream()
 			// Truncate the evolution stream after 7 "steady"
 			// generations.
-			.limit(bySteadyFitness(generationsCount))
+			//.limit(bySteadyFitness(generationsCount))
 			// The evolution will stop after maximal 100
 			// generations.
 			.limit(generationsLimit)
